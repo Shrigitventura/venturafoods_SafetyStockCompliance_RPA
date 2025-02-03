@@ -6,7 +6,7 @@ library(writexl)
 library(reshape2)
 library(skimr)
 
-specific_date <- as.Date("2025-01-21")
+specific_date <- as.Date("2025-01-28")
 
 # (Path revision needed) load main board (mega data) ----
 load("C:/Users/SPoudel/OneDrive - Ventura Foods/Desktop/VenturaCodesRStudio/venturafoods_SafetyStockCompliance_RPA/rds files/ssmetrics_mainboard_01_14_2025.rds") # Load pre week
@@ -162,7 +162,7 @@ Planner_address %>%
 
 
 # (Path revision needed) exception report ----
-exception_report <- read_excel("S:/Supply Chain Projects/Data Source (SCE)/JDE Exception report extract/2025/exception report 2025.01.28.xlsx")
+exception_report <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/01.28.2025/exception report.xlsx")
 
 readr::type_convert(exception_report) -> exception_report
 
@@ -358,10 +358,8 @@ reshape2::dcast(po, ref ~ next_7_days, value.var = "qty", sum)  -> PO_Pivot
 
 
 
-JDOH_complete <- read_excel("S:/Supply Chain Projects/Data Source (SCE)/Inventory/Inventory with Lot Report v.2 - 2025.01.28.xlsx",
+JDOH_complete <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/01.28.2025/Inventory.xlsx",
                             sheet = "FG")
-JDOH_complete_2 <- read_excel("S:/Supply Chain Projects/Data Source (SCE)/Inventory/Inventory with Lot Report v.2 - 2025.01.28.xlsx",
-                              sheet = "RM")
 
 
 JDOH_complete[-1, ] -> JDOH_complete
@@ -370,8 +368,8 @@ JDOH_complete[-1, ] -> JDOH_complete
 
 JDOH_complete %>% 
   janitor::clean_names() %>% 
-  dplyr::mutate(item = gsub("-", "", item)) %>% 
-  dplyr::filter(stringr::str_detect(item, "^[0-9]+[a-zA-Z]+$")) %>% 
+  #dplyr::mutate(item = gsub("-", "", item)) %>% 
+  #dplyr::filter(stringr::str_detect(item, "^[0-9]+[a-zA-Z]+$")) %>% 
   dplyr::mutate(ref = paste0(location, "_", item)) %>% 
   dplyr::select(ref, inventory_hold_status, current_inventory_balance) %>% 
   dplyr::mutate(current_inventory_balance = as.double(current_inventory_balance)) -> JDOH_complete_1
@@ -432,6 +430,9 @@ JDOH_complete %>%
 
 
 ################### RM ####################
+JDOH_complete_2 <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/01.28.2025/Inventory.xlsx",
+                              sheet = "RM")
+
 
 JDOH_complete_2[-1, ] -> JDOH_complete_2
 colnames(JDOH_complete_2) <- JDOH_complete_2[1, ]
@@ -500,6 +501,8 @@ JDOH_complete_2 %>%
 rbind(JDOH_complete, JDOH_complete_2) -> JDOH_complete
 
 ####################################################################################################################################################
+write.xlsx(JDOH_complete,"test.xlsx")
+write_xlsx(JDOH_complete, "C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/01.28.2025/JDOHTest.xlsx") 
 ####################################################################################################################################################
 ############################################################### 6/5/2023 Update ####################################################################
 ####################################################################################################################################################
@@ -507,7 +510,7 @@ rbind(JDOH_complete, JDOH_complete_2) -> JDOH_complete
 
 
 # Add Location 430
-loc_430_for_jdoh <- read_excel("S:/Supply Chain Projects/Data Source (SCE)/Report ingredients/Stan/01212025/430.xlsx")
+loc_430_for_jdoh <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/01.28.2025/430.xlsx")
 loc_430_for_jdoh[-1:-3, ] -> loc_430_for_jdoh
 colnames(loc_430_for_jdoh) <- loc_430_for_jdoh[1, ]
 loc_430_for_jdoh[-1, ] -> loc_430_for_jdoh
@@ -780,11 +783,11 @@ merge(cat_mega, ssmetrics_mainboard_cat[, c("Item", "Category")], by = "Item", a
   dplyr::select(-Category.x) %>% 
   dplyr::rename(Category = Category.y) -> cat_mega  
 
-
+write.xlsx(ssmetrics,"BeforeMergeSSMetriccoderow786.xlsx")
 
 rbind(ssmetrics_cat_not_na, ssmetrics_cat_passed, cat_mega) -> ssmetrics
 
-
+write.xlsx(ssmetrics,"AfterMergeSSMetriccoderow790.xlsx")
 
 # Platform vlookup from category_bi
 merge(ssmetrics, category_bi[, c("Item", "Platform")], by = "Item", all.x = TRUE) -> ssmetrics  
@@ -816,9 +819,10 @@ merge(plt_mega, ssmetrics_mainboard_plt[, c("Item", "Platform")], by = "Item", a
   dplyr::select(-Platform.x) %>% 
   dplyr::rename(Platform = Platform.y) -> plt_mega  
 
-
+#Before this 14648 in SSmetrics which is coming from original merge between JDOH, 430, and 25_55Label Inventory
 rbind(ssmetrics_plt_not_na, ssmetrics_plt_passed, plt_mega) -> ssmetrics
 
+#after this still 14648 in SSmetrics which is coming from original merge between JDOH, 430, and 25_55Label Inventory
 
 #####################################################
 
@@ -847,6 +851,7 @@ merge(Pivot_itmbal, Pivot_hold_qty[, c("ref", "Balance_Hold")], by = "ref", all.
 
 ##################### Final SS Metrics #####################
 Pivot_itmbal -> ssmetrics_final
+#still 14648
 
 # campus & campus_ref
 merge(ssmetrics_final, campus_ref[, c("Location", "Campus")], by = "Location", all.x = TRUE) %>% 
@@ -898,10 +903,12 @@ ssmetrics_final %>%
                                                         po_qty_in_the_next_5_days == 0, 
                                                       "Below SS with no supply","Below SS")))) -> ssmetrics_final
 
+#Upto Here completed test on 2/1 and ss_metric still 14648
 
 # Campus SS
 plyr::ddply(ssmetrics_final, "campus_ref", transform, campus_ss = sum(Safety_Stock)) -> ssmetrics_final
 
+#ss Metric Final still 14648
 
 # campus_total_available
 plyr::ddply(ssmetrics_final, "campus_ref", transform, campus_total_available_1 = sum(Balance_Usable)) -> ssmetrics_final
@@ -1035,6 +1042,7 @@ ssmetrics_final %>%
 ssmetrics_final %>% 
   dplyr::mutate(MTO_MTS = ifelse(Location == 430, 4, MTO_MTS)) -> ssmetrics_final
 
+#this is where it is converted from 14649 to 12400.  MTO_MTS == 4
 # Final Touch
 ssmetrics_final %>% 
   dplyr::filter(MTO_MTS == 4) -> ssmetrics_final
