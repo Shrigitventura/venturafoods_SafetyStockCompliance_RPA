@@ -6,10 +6,16 @@ library(writexl)
 library(reshape2)
 library(skimr)
 
-specific_date <- as.Date("2025-02-11")
+specific_date <- as.Date("2025-02-18")
+
+#create the folder for new date
+mainDir <- "C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025"
+subDir <- "02.18.2025"
+dir.create(file.path(mainDir, subDir))
+setwd(file.path(mainDir, subDir))
 
 # (Path revision needed) load main board (mega data) ----
-load("C:/Users/SPoudel/OneDrive - Ventura Foods/Desktop/VenturaCodesRStudio/venturafoods_SafetyStockCompliance_RPA/rds files/ssmetrics_mainboard_02_04_2025.rds") # Load pre week
+load("C:/Users/SPoudel/OneDrive - Ventura Foods/Desktop/VenturaCodesRStudio/venturafoods_SafetyStockCompliance_RPA/rds files/ssmetrics_mainboard_02_11_2025.rds") # Load pre week
 
 
 ssmetrics_mainboard %>%
@@ -88,7 +94,7 @@ colnames(oil_aloc)[3] <- "comp_desc"
 
 # S:Drive - Supply Chain Project - Logistics - SCP - Cost Saving Reporting 
 
-inventory_model <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/SS Optimization by Location - Finished Goods LIVE.xlsx",
+inventory_model <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/SS Optimization by Location - Finished Goods LIVE.xlsx",
                               col_names = FALSE, sheet = "Fin Goods")
 
 inventory_model[-1:-7, ] -> inventory_model
@@ -137,7 +143,7 @@ Lot_Status %>%
   dplyr::select(Lot_Status, Hold_Status) -> Lot_Status
 
 # previous SS_Metrics file (This is the most recent file format before we changed "Type" and "Stocking Type Description") - Do not change this until further notice
-ssmetrics_pre <- read_excel("S:/Supply Chain Projects/LOGISTICS/SCP/Cost Saving Reporting/SS Compliance/Archive/Copy of Safety Stock Compliance Report Data v3 - 06.05.23.xlsx",  ### No Impact ###
+ssmetrics_pre <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Static_MonthlyLookup Dataset/Copy of Safety Stock Compliance Report Data v3 - 06.05.23.xlsx",  ### No Impact ###
                             col_names = FALSE)
 
 ssmetrics_pre[-1, ] -> ssmetrics_pre
@@ -162,7 +168,7 @@ Planner_address %>%
 
 
 # (Path revision needed) exception report ----
-exception_report <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/exception report 2025.02.11.xlsx")
+exception_report <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/exception report.xlsx")
 
 readr::type_convert(exception_report) -> exception_report
 
@@ -221,7 +227,7 @@ exception_report %>%
 
 # (Path revision needed) custord custord ----
 # Open Customer Order File pulling ----  Change Directory ----
-custord <- read.xlsx("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/US and CAN OO BT where status _ J.xlsx",
+custord <- read.xlsx("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/US and CAN OO BT where status _ J.xlsx",
                      colNames = FALSE)
 
 custord %>% 
@@ -233,17 +239,17 @@ custord[-1, ] -> custord
 
 custord %>% 
   janitor::clean_names() %>% 
-  dplyr::mutate(product_label_sku = gsub("-", "", product_label_sku)) %>% 
-  dplyr::mutate(ref = paste0(location, "_", product_label_sku)) %>% 
+  dplyr::mutate(product_label_sku = gsub("-", "", product_label_sku_code)) %>% 
+  dplyr::mutate(ref = paste0(location_no, "_", product_label_sku_code)) %>% 
   dplyr::mutate(oo_cases = as.double(oo_cases),
                 oo_cases = ifelse(is.na(oo_cases), 0, oo_cases),
                 b_t_open_order_cases = as.double(b_t_open_order_cases),
                 b_t_open_order_cases = ifelse(is.na(b_t_open_order_cases), 0, b_t_open_order_cases)) %>%
   dplyr::mutate(Qty = oo_cases + b_t_open_order_cases) %>% 
   dplyr::mutate(sales_order_requested_ship_date = as_date(as.integer(sales_order_requested_ship_date), origin = "1899-12-30")) %>% 
-  dplyr::select(ref, product_label_sku, location, Qty, sales_order_requested_ship_date) %>% 
+  dplyr::select(ref, product_label_sku, location_no, Qty, sales_order_requested_ship_date) %>% 
   dplyr::rename(Item = product_label_sku,
-                Location = location,
+                Location = location_no,
                 date = sales_order_requested_ship_date) %>% 
   dplyr::group_by(ref, Item, Location, date) %>% 
   dplyr::summarise(Qty = sum(Qty)) %>% 
@@ -260,7 +266,7 @@ reshape2::dcast(custord, ref ~ in_next_7_days, value.var = "Qty", sum) %>%
 
 
 # (Path revision needed) Custord wo ----
-wo <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/Open Work Order for 28 days.xlsx")
+wo <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/Open Work Order for 28 days.xlsx")
 
 wo[-1, ] -> wo
 colnames(wo) <- wo[1, ]
@@ -286,7 +292,7 @@ wo %>%
 # (Path revision needed) Custord Receipt ----
 
 
-receipt <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/BT open order and qty.xlsx")
+receipt <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/BT open order and qty.xlsx")
 
 
 receipt[-1, ] -> receipt
@@ -321,7 +327,7 @@ reshape2::dcast(receipt, ref ~ next_7_days, value.var = "qty", sum) -> receipt_p
 
 
 # (Path revision needed) Custord PO ----
-po <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/PO_JDE.xlsx",
+po <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/PO_JDE.xlsx",
                  sheet = "Daily Open PO")
 
 
@@ -358,7 +364,7 @@ reshape2::dcast(po, ref ~ next_7_days, value.var = "qty", sum)  -> PO_Pivot
 
 ####THIS IS ALREADY MODIFIED WITH MSTR and COMPLETE####
 
-JDOH_complete <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/Inventory with Lot Report v.2 - 2025.02.11.xlsx",
+JDOH_complete <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/Inventory with Lot Report v.2.xlsx",
                             sheet = "FG")
 
 
@@ -430,7 +436,7 @@ JDOH_complete %>%
 
 
 ################### RM ####################
-JDOH_complete_2 <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/Inventory with Lot Report v.2 - 2025.02.11.xlsx",
+JDOH_complete_2 <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/Inventory with Lot Report v.2.xlsx",
                               sheet = "RM")
 
 
@@ -459,7 +465,7 @@ JDOH_complete_2_2 %>%
   dplyr::mutate(Balance_Usable = useable + soft_hold,
                 Balance_Hold = hard_hold,
                 On_Hand = Balance_Usable + Balance_Hold) %>% 
-  dplyr::select(-useable, -hard_hold, -soft_hold) -> JDOH_complete_2_2
+  dplyr::select(-useable, -hard_hold, -soft_hold,-na) -> JDOH_complete_2_2
 
 
 
@@ -502,7 +508,7 @@ rbind(JDOH_complete, JDOH_complete_2) -> JDOH_complete
 
 ####################################################################################################################################################
 write.xlsx(JDOH_complete,"test.xlsx")
-write_xlsx(JDOH_complete, "C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/02.11.2025/JDOHTest.xlsx") 
+write_xlsx(JDOH_complete, "C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/02.18.2025/JDOHTest.xlsx") 
 ####################################################################################################################################################
 ############################################################### 6/5/2023 Update ####################################################################
 ####################################################################################################################################################
@@ -510,7 +516,7 @@ write_xlsx(JDOH_complete, "C:/Users/SPoudel/Ventura Foods/SC Analytics Team - Ge
 
 
 # Add Location 430
-loc_430_for_jdoh <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/430.xlsx")
+loc_430_for_jdoh <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/430.xlsx")
 loc_430_for_jdoh[-1:-3, ] -> loc_430_for_jdoh
 colnames(loc_430_for_jdoh) <- loc_430_for_jdoh[1, ]
 loc_430_for_jdoh[-1, ] -> loc_430_for_jdoh
@@ -556,7 +562,7 @@ lot_status_code %>%
 
 
 
-jde_inv_for_25_55_label <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/JDE Inventory Lot Detail - 2025.02.11.xlsx")
+jde_inv_for_25_55_label <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/JDE Inventory Lot Detail.xlsx")
 
 jde_inv_for_25_55_label[-1:-5, ] -> jde_inv_for_25_55_label
 colnames(jde_inv_for_25_55_label) <- jde_inv_for_25_55_label[1, ]
@@ -1081,7 +1087,7 @@ ssmetrics_final_2 %>%
 
 # completed sku list import (fix Category & Platform) ----
 # https://edgeanalytics.venturafoods.com/MicroStrategy/servlet/mstrWeb
-completed_sku_list <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Weekly Dataset/02.11.2025/Complete SKU list - Linda.xlsx")
+completed_sku_list <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Lookup Datasets/Current Week Dataset/Complete SKU list - Linda.xlsx")
 completed_sku_list[-1:-2, ]  %>% 
   janitor::clean_names() %>% 
   dplyr::select(x6, x9, x11) %>% 
@@ -1236,7 +1242,7 @@ ssmetrics_final_2 %>%
   dplyr::left_join(campus_abb) -> ssmetrics_final_2
 
 ################### Additional Code revise 10/03/2023 #######################
-pre_ss_metrics <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/02.04.2025/SS Metrics 0204.xlsx")
+pre_ss_metrics <- read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/02.11.2025/SS Metrics 0211.xlsx")
 
 pre_ss_metrics %>% 
   dplyr::select(Item, Category, Platform, macro_platform, Type, Stocking_Type_Description, mfg_line, capacity_status) %>% 
@@ -1263,7 +1269,7 @@ ssmetrics_final_2 %>%
 
 
 ################### Additional Code revise 10/24/2023 #######################
-iqr_fg <- readxl::read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/IQR Automation/FG/Weekly Run Files/2025/02.04.2025/Finished Goods Inventory Health Adjusted Forward (IQR) NEW TEMPLATE - 02.04.2025.xlsx",
+iqr_fg <- readxl::read_excel("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/IQR Automation/FG/Weekly Run Files/2025/02.11.2025/Finished Goods Inventory Health Adjusted Forward (IQR) NEW TEMPLATE - 02.11.2025.xlsx",
                              sheet = "Location FG")
 
 
@@ -1424,7 +1430,7 @@ ssmetrics_final_2 %>%
 #####################################################################################################################################
 
 
-writexl::write_xlsx(ssmetrics_final_2, "C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/02.11.2025/SS Metrics 0211.xlsx") 
+writexl::write_xlsx(ssmetrics_final_2, "C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/02.18.2025/SS Metrics 0218.xlsx") 
 
 
 
@@ -1462,8 +1468,8 @@ save(ssmetrics_mainboard, file = "C:/Users/SPoudel/OneDrive - Ventura Foods/Desk
 #######################################################################################################################################
 #######################################################################################################################################
 
-file.copy("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/01.21.2025/Weekly Safety Stock Compliance Report v4 rolling 53 weeks - 01.21.2025.xlsb",
-          "C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/02.11.2025/Weekly Safety Stock Compliance Report v4 rolling 53 weeks - 02.11.2025.xlsb")
+file.copy("C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/02.11.2025/Weekly Safety Stock Compliance Report v4 rolling 53 weeks - 02.11.2025.xlsb",
+          "C:/Users/SPoudel/Ventura Foods/SC Analytics Team - General/Stan Report Files/File Repository/Safety Stock Compliance/Weekly Run Files/2025/02.18.2025/Weekly Safety Stock Compliance Report v4 rolling 53 weeks - 02.18.2025.xlsb")
 
 
 
